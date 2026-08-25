@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>三角桌牌產生器</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;800&family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
+  <style>
+    /* 載入 Repo 內的粉圓字體 */
+    @font-face {
+      font-family: 'OpenHuninn';
+      src: url('./jf-openhuninn-2.1.ttf') format('truetype');
+      font-display: swap;
+    }
+
+    .font-sans-tc { font-family: 'Noto Sans TC', sans-serif; }
+    .font-serif-tc { font-family: 'Noto Serif TC', serif; }
+    .font-kai { font-family: BiauKai, "Kaiti TC", "標楷體", serif; }
+    .font-huninn { font-family: 'OpenHuninn', sans-serif; }
+
+    .a4-landscape {
+      width: 297mm;
+      height: 210mm;
+      page-break-after: always;
+      break-after: page;
+    }
+
+    .bg-face {
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 100% 100%;
+    }
+
+    .draggable-item {
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+      position: absolute;
+      transform: translate(-50%, -50%);
+      white-space: nowrap;
+      z-index: 10;
+    }
+    .draggable-item:active { cursor: grabbing; }
+
+    @media print {
+      body {
+        background: white !important;
+        padding: 0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .no-print { display: none !important; }
+      .print-area-wrapper {
+        display: block !important;
+        padding: 0 !important;
+      }
+      .a4-landscape {
+        box-shadow: none !important;
+        margin: 0 !important;
+        border: none !important;
+        width: 297mm !important;
+        height: 210mm !important;
+      }
+      .grid-line { display: none !important; }
+      
+      .card-outer-border {
+        border: 1px dashed #cbd5e1 !important;
+      }
+
+      @page {
+        size: A4 landscape;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen p-4 md:p-6 text-slate-800">
+
+  <div class="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
+    
+    <!-- 左側控制面板 -->
+    <div class="no-print w-full lg:w-80 bg-white rounded-xl shadow-md p-5 space-y-4 h-fit max-h-[92vh] overflow-y-auto">
+      <h1 class="text-xl font-bold border-b pb-3 text-slate-900 flex items-center justify-between">
+        <span>🪪 三角桌牌產生器</span>
+      </h1>
+
+      <!-- 模式切換 -->
+      <div class="flex rounded-lg bg-slate-100 p-1 border">
+        <button id="btnModeSingle" class="flex-1 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-indigo-600 transition">單張微調 (可拖拉)</button>
+        <button id="btnModeBatch" class="flex-1 py-1.5 text-xs font-bold rounded-md text-slate-500 transition">🚀 批量建立</button>
+      </div>
+
+      <!-- 預設主題選單 -->
+      <div>
+        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">🎨 預設版面主題</label>
+        <select id="selectTheme" class="w-full border rounded-lg p-2 text-xs bg-white font-medium border-indigo-200 focus:ring-2 focus:ring-indigo-500">
+          <option value="classic">公務典雅 (標楷體 / 經典紅黑)</option>
+          <option value="modern">現代簡約 (黑體 / 深灰質感)</option>
+          <option value="academic">學術研習 (明體 / 典雅深藍)</option>
+          <option value="cute">活潑粉圓 (粉圓體 / 繽紛色彩)</option>
+        </select>
+      </div>
+
+      <!-- 尺寸規格與黏貼頁開關 -->
+      <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-3">
+        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block">📐 尺寸規格</span>
+
+        <div>
+          <label class="block text-[11px] text-slate-500 mb-1">快速套用預設尺寸</label>
+          <select id="selectPresetSize" class="w-full border rounded p-1 text-xs bg-white font-medium border-indigo-200 focus:ring-2 focus:ring-indigo-500">
+            <option value="custom">⚙️ 自訂尺寸</option>
+            <option value="60_40">4cm × 6cm (寬 60 × 高 40 mm)</option>
+            <option value="90_60">6cm × 9cm (寬 90 × 高 60 mm)</option>
+            <option value="120_60">12cm × 6cm (寬 120 × 高 60 mm)</option>
+            <option value="150_80">15cm × 8cm (寬 150 × 高 80 mm)</option>
+            <option value="150_100">15cm × 10cm (寬 150 × 高 100 mm)</option>
+            <option value="180_100">18cm × 10cm (寬 180 × 高 100 mm)</option>
+            <option value="200_100">20cm × 10cm (寬 200 × 高 100 mm)</option>
+            <option value="220_100">22cm × 10cm (寬 220 × 高 100 mm)</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[11px] text-slate-500">總寬度 (mm)</label>
+            <input type="number" id="inputCardWidth" value="240" min="30" max="297" class="w-full border rounded p-1 text-xs bg-white">
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-500">單面高度 (mm)</label>
+            <input type="number" id="inputFaceHeight" value="70" min="20" max="100" class="w-full border rounded p-1 text-xs bg-white">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between border-t border-slate-200 pt-2">
+          <label for="toggleFlaps" class="text-[11px] text-slate-600 font-medium cursor-pointer select-none">保留上下黏貼頁 (各 20mm)</label>
+          <input type="checkbox" id="toggleFlaps" checked class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer">
+        </div>
+      </div>
+
+      <!-- 單張內容與獨立樣式設定 -->
+      <div id="singleControls" class="space-y-3">
+        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block border-t pt-3">✍️ 單張內容與樣式</span>
+        
+        <!-- 上 (職稱) -->
+        <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
+          <label class="block text-[11px] font-bold text-slate-700">⬆️ 上（職稱 / 單位）</label>
+          <input type="text" id="inputTitle" value="教務處 主任" placeholder="請輸入職稱或單位" class="w-full border rounded p-1.5 text-xs bg-white">
+          
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <div>
+              <label class="block text-[10px] text-slate-500">字型</label>
+              <select id="selectFontTitle" class="w-full border rounded p-1 text-xs bg-white">
+                <option value="font-sans-tc">黑體</option>
+                <option value="font-serif-tc">明體</option>
+                <option value="font-kai" selected>標楷體</option>
+                <option value="font-huninn">jf-openhuninn 粉圓</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-500">顏色</label>
+              <input type="color" id="inputColorTitle" value="#475569" class="w-full h-7 rounded border p-0.5 cursor-pointer">
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-[10px] text-slate-500">
+              <span>字級大小</span>
+              <span><span id="sizeTitleValue">22</span>px</span>
+            </div>
+            <input type="range" id="inputSizeTitle" min="10" max="60" value="22" class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+          </div>
+        </div>
+
+        <!-- 中 (姓名) -->
+        <div class="p-2.5 bg-indigo-50/50 border border-indigo-200 rounded-lg space-y-2">
+          <label class="block text-[11px] font-bold text-indigo-800">⏹️ 中（主要姓名）</label>
+          <input type="text" id="inputName" value="陳大明" placeholder="請輸入姓名" class="w-full border rounded p-1.5 text-xs bg-white font-medium">
+          
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <div>
+              <label class="block text-[10px] text-indigo-600 font-medium">字型</label>
+              <select id="selectFontName" class="w-full border rounded p-1 text-xs bg-white border-indigo-200">
+                <option value="font-sans-tc">黑體</option>
+                <option value="font-serif-tc">明體</option>
+                <option value="font-kai" selected>標楷體</option>
+                <option value="font-huninn">jf-openhuninn 粉圓</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-indigo-600 font-medium">顏色</label>
+              <input type="color" id="inputColorName" value="#881337" class="w-full h-7 rounded border p-0.5 cursor-pointer">
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-[10px] text-indigo-600 font-bold">
+              <span>字級大小</span>
+              <span><span id="sizeNameValue">58</span>px</span>
+            </div>
+            <input type="range" id="inputSizeName" min="20" max="100" value="58" class="w-full h-1 bg-indigo-200 rounded-lg appearance-none cursor-pointer">
+          </div>
+        </div>
+
+        <!-- 下 (備註) -->
+        <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
+          <label class="block text-[11px] font-bold text-slate-700">⬇️ 下（備註 / 說明）</label>
+          <input type="text" id="inputSubtext" value="校務會議代表" placeholder="請輸入下方備註文字" class="w-full border rounded p-1.5 text-xs bg-white">
+          
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <div>
+              <label class="block text-[10px] text-slate-500">字型</label>
+              <select id="selectFontSubtext" class="w-full border rounded p-1 text-xs bg-white">
+                <option value="font-sans-tc">黑體</option>
+                <option value="font-serif-tc">明體</option>
+                <option value="font-kai" selected>標楷體</option>
+                <option value="font-huninn">jf-openhuninn 粉圓</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-500">顏色</label>
+              <input type="color" id="inputColorSubtext" value="#64748b" class="w-full h-7 rounded border p-0.5 cursor-pointer">
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-[10px] text-slate-500">
+              <span>字級大小</span>
+              <span><span id="sizeSubtextValue">16</span>px</span>
+            </div>
+            <input type="range" id="inputSizeSubtext" min="10" max="50" value="16" class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+          </div>
+        </div>
+      </div>
+
+      <!-- 批量建立模式 -->
+      <div id="batchControls" class="space-y-2 border-t pt-3 hidden">
+        <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider block">📋 大量資料貼上 (Excel 複製)</span>
+        <p class="text-[11px] text-slate-400">格式：每列一人「上(職稱), 中(姓名), 下(備註)」（支援逗號或 Tab）</p>
+        <textarea id="batchTextarea" rows="6" class="w-full border rounded-lg p-2 text-xs font-mono focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="教務處 主任, 陳大明, 會議代表
+學務處 主任, 林小華, 研習講師
+總務處 組長, 張強, 出席人員"></textarea>
+        <div class="text-xs text-indigo-600 font-bold" id="batchCount">已解析：3 筆資料</div>
+      </div>
+
+      <!-- 背景圖與位置控制 -->
+      <div class="space-y-3 border-t pt-3">
+        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block">🖼️ 背景圖與位置重置</span>
+        
+        <div>
+          <label class="block text-xs font-medium mb-1">上傳背景圖 (正背面鏡像)</label>
+          <input type="file" id="inputBg" accept="image/*" class="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-indigo-50 file:text-indigo-700">
+        </div>
+
+        <button id="resetPosBtn" class="w-full py-1 bg-slate-200 hover:bg-slate-300 text-[11px] rounded text-slate-700 font-medium transition">
+          ↺ 恢復預設位置 (4等分排列)
+        </button>
+      </div>
+
+      <button onclick="window.print()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow transition flex items-center justify-center gap-2">
+        🖨️ 一鍵全部列印 (A4 橫向)
+      </button>
+    </div>
+
+    <!-- 右側 A4 即時預覽區域 -->
+    <div class="flex-1 flex flex-col items-center overflow-auto print-area-wrapper space-y-8 pb-10">
+      <div id="cardsRenderArea" class="space-y-8"></div>
+    </div>
+
+  </div>
+
+  <script>
+    const themes = {
+      classic: {
+        fontTitle: 'font-kai', colorTitle: '#475569', sizeTitle: 22,
+        fontName: 'font-kai', colorName: '#881337', sizeName: 58,
+        fontSubtext: 'font-kai', colorSubtext: '#64748b', sizeSubtext: 16
+      },
+      modern: {
+        fontTitle: 'font-sans-tc', colorTitle: '#334155', sizeTitle: 20,
+        fontName: 'font-sans-tc', colorName: '#0f172a', sizeName: 54,
+        fontSubtext: 'font-sans-tc', colorSubtext: '#64748b', sizeSubtext: 15
+      },
+      academic: {
+        fontTitle: 'font-serif-tc', colorTitle: '#1e3a8a', sizeTitle: 20,
+        fontName: 'font-serif-tc', colorName: '#1e3a8a', sizeName: 56,
+        fontSubtext: 'font-serif-tc', colorSubtext: '#475569', sizeSubtext: 15
+      },
+      cute: {
+        fontTitle: 'font-huninn', colorTitle: '#0369a1', sizeTitle: 22,
+        fontName: 'font-huninn', colorName: '#c026d3', sizeName: 58,
+        fontSubtext: 'font-huninn', colorSubtext: '#059669', sizeSubtext: 16
+      }
+    };
+
+    let currentMode = 'single';
+    let bgImageData = '';
+    let positions = { title: { top: 12.5, left: 50 }, name: { top: 50, left: 50 }, subtext: { top: 87.5, left: 50 } };
+
+    const btnModeSingle = document.getElementById('btnModeSingle');
+    const btnModeBatch = document.getElementById('btnModeBatch');
+    const singleControls = document.getElementById('singleControls');
+    const batchControls = document.getElementById('batchControls');
+    const selectTheme = document.getElementById('selectTheme');
+    const cardsRenderArea = document.getElementById('cardsRenderArea');
+    const batchTextarea = document.getElementById('batchTextarea');
+    const batchCount = document.getElementById('batchCount');
+
+    const selectPresetSize = document.getElementById('selectPresetSize');
+    const inputCardWidth = document.getElementById('inputCardWidth');
+    const inputFaceHeight = document.getElementById('inputFaceHeight');
+    const toggleFlaps = document.getElementById('toggleFlaps');
+
+    const inputTitle = document.getElementById('inputTitle');
+    const selectFontTitle = document.getElementById('selectFontTitle');
+    const inputColorTitle = document.getElementById('inputColorTitle');
+    const inputSizeTitle = document.getElementById('inputSizeTitle');
+    const sizeTitleValue = document.getElementById('sizeTitleValue');
+
+    const inputName = document.getElementById('inputName');
+    const selectFontName = document.getElementById('selectFontName');
+    const inputColorName = document.getElementById('inputColorName');
+    const inputSizeName = document.getElementById('inputSizeName');
+    const sizeNameValue = document.getElementById('sizeNameValue');
+
+    const inputSubtext = document.getElementById('inputSubtext');
+    const selectFontSubtext = document.getElementById('selectFontSubtext');
+    const inputColorSubtext = document.getElementById('inputColorSubtext');
+    const inputSizeSubtext = document.getElementById('inputSizeSubtext');
+    const sizeSubtextValue = document.getElementById('sizeSubtextValue');
+
+    const inputBg = document.getElementById('inputBg');
+    const resetPosBtn = document.getElementById('resetPosBtn');
+
+    btnModeSingle.addEventListener('click', () => {
+      currentMode = 'single';
+      btnModeSingle.className = "flex-1 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-indigo-600 transition";
+      btnModeBatch.className = "flex-1 py-1.5 text-xs font-bold rounded-md text-slate-500 transition";
+      singleControls.classList.remove('hidden');
+      batchControls.classList.add('hidden');
+      render();
+    });
+
+    btnModeBatch.addEventListener('click', () => {
+      currentMode = 'batch';
+      btnModeBatch.className = "flex-1 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-indigo-600 transition";
+      btnModeSingle.className = "flex-1 py-1.5 text-xs font-bold rounded-md text-slate-500 transition";
+      batchControls.classList.remove('hidden');
+      singleControls.classList.add('hidden');
+      render();
+    });
+
+    selectPresetSize.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val === 'custom') return;
+      const [w, h] = val.split('_').map(Number);
+      if (w && h) {
+        inputCardWidth.value = w;
+        inputFaceHeight.value = h;
+        render();
+      }
+    });
+
+    [inputCardWidth, inputFaceHeight].forEach(el => {
+      el.addEventListener('input', () => {
+        selectPresetSize.value = 'custom';
+      });
+    });
+
+    selectTheme.addEventListener('change', (e) => {
+      const t = themes[e.target.value];
+      if (t) {
+        selectFontTitle.value = t.fontTitle;
+        inputColorTitle.value = t.colorTitle;
+        inputSizeTitle.value = t.sizeTitle;
+        sizeTitleValue.innerText = t.sizeTitle;
+
+        selectFontName.value = t.fontName;
+        inputColorName.value = t.colorName;
+        inputSizeName.value = t.sizeName;
+        sizeNameValue.innerText = t.sizeName;
+
+        selectFontSubtext.value = t.fontSubtext;
+        inputColorSubtext.value = t.colorSubtext;
+        inputSizeSubtext.value = t.sizeSubtext;
+        sizeSubtextValue.innerText = t.sizeSubtext;
+
+        render();
+      }
+    });
+
+    inputBg.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          bgImageData = evt.target.result;
+          render();
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function createCardHTML(data, index, isInteractive = false) {
+      const fontTitle = selectFontTitle.value;
+      const colorTitle = inputColorTitle.value;
+      const sizeTitle = inputSizeTitle.value;
+
+      const fontName = selectFontName.value;
+      const colorName = inputColorName.value;
+      const sizeName = inputSizeName.value;
+
+      const fontSubtext = selectFontSubtext.value;
+      const colorSubtext = inputColorSubtext.value;
+      const sizeSubtext = inputSizeSubtext.value;
+
+      const bgStyle = bgImageData ? `background-image: url('${bgImageData}'); background-size: 100% 100%;` : '';
+
+      const cardWidth = parseInt(inputCardWidth.value) || 240;
+      const faceHeight = parseInt(inputFaceHeight.value) || 70;
+      const hasFlaps = toggleFlaps.checked;
+      const flapHeight = hasFlaps ? 20 : 0;
+      const totalHeight = (faceHeight * 2) + (flapHeight * 2);
+
+      return `
+        <div class="a4-landscape bg-white shadow-xl rounded-lg border border-slate-300 flex items-center justify-center relative shrink-0 p-4">
+          <div class="card-outer-border border border-dashed border-slate-300 relative flex flex-col justify-between transition-all bg-white" style="width: ${cardWidth}mm; height: ${totalHeight}mm;">
+            <span class="absolute -top-5 left-0 text-[10px] text-slate-400 font-mono no-print">✂️ 頁面 ${index + 1} | 尺寸: ${cardWidth}x${totalHeight}mm</span>
+
+            ${hasFlaps ? `
+            <div class="border-b border-dashed border-slate-300 flex items-center justify-center bg-slate-50/50" style="height: ${flapHeight}mm;">
+              <span class="text-[10px] text-slate-400 no-print">⋯⋯ 折線：頂部黏貼頁 ⋯⋯</span>
+            </div>
+            ` : ''}
+
+            <!-- 背面 (鏡像倒立) -->
+            <div class="bg-face ${hasFlaps ? 'border-b border-dashed border-slate-300' : ''} transform rotate-180 relative overflow-hidden" style="height: ${faceHeight}mm; ${bgStyle}">
+              <div class="grid-line absolute inset-0 flex flex-col pointer-events-none opacity-20">
+                <div class="h-1/4 border-b border-blue-500"></div><div class="h-1/4 border-b border-blue-500"></div><div class="h-1/4 border-b border-blue-500"></div>
+              </div>
+              <div id="${isInteractive ? 'backTitle' : ''}" class="absolute transform -translate-x-1/2 -translate-y-1/2 font-bold tracking-widest ${fontTitle}" style="top: ${positions.title.top}%; left: ${positions.title.left}%; font-size: ${sizeTitle}px; color: ${colorTitle};">${data.title}</div>
+              <div id="${isInteractive ? 'backName' : ''}" class="absolute transform -translate-x-1/2 -translate-y-1/2 font-bold tracking-widest ${fontName}" style="top: ${positions.name.top}%; left: ${positions.name.left}%; font-size: ${sizeName}px; color: ${colorName};">${data.name}</div>
+              <div id="${isInteractive ? 'backSubtext' : ''}" class="absolute transform -translate-x-1/2 -translate-y-1/2 font-medium tracking-wider ${fontSubtext}" style="top: ${positions.subtext.top}%; left: ${positions.subtext.left}%; font-size: ${sizeSubtext}px; color: ${colorSubtext};">${data.subtext}</div>
+            </div>
+
+            <!-- 正面 -->
+            <div id="${isInteractive ? 'secFaceFront' : ''}" class="bg-face ${hasFlaps ? 'border-b border-dashed border-slate-300' : ''} relative overflow-hidden" style="height: ${faceHeight}mm; ${bgStyle}">
+              <div class="grid-line absolute inset-0 flex flex-col pointer-events-none opacity-40">
+                <div class="h-1/4 border-b border-dashed border-blue-400 flex items-end justify-end pr-1"><span class="text-[9px] text-blue-400 no-print">1/4</span></div>
+                <div class="h-1/4 border-b border-dashed border-blue-400 flex items-end justify-end pr-1"><span class="text-[9px] text-blue-400 no-print">2/4</span></div>
+                <div class="h-1/4 border-b border-dashed border-blue-400 flex items-end justify-end pr-1"><span class="text-[9px] text-blue-400 no-print">3/4</span></div>
+                <div class="h-1/4 flex items-end justify-end pr-1"><span class="text-[9px] text-blue-400 no-print">4/4</span></div>
+              </div>
+
+              <div id="${isInteractive ? 'frontTitle' : ''}" class="${isInteractive ? 'draggable-item' : 'absolute transform -translate-x-1/2 -translate-y-1/2'} font-bold tracking-widest ${fontTitle}" style="top: ${positions.title.top}%; left: ${positions.title.left}%; font-size: ${sizeTitle}px; color: ${colorTitle};">${data.title}</div>
+              <div id="${isInteractive ? 'frontName' : ''}" class="${isInteractive ? 'draggable-item' : 'absolute transform -translate-x-1/2 -translate-y-1/2'} font-bold tracking-widest ${fontName}" style="top: ${positions.name.top}%; left: ${positions.name.left}%; font-size: ${sizeName}px; color: ${colorName};">${data.name}</div>
+              <div id="${isInteractive ? 'frontSubtext' : ''}" class="${isInteractive ? 'draggable-item' : 'absolute transform -translate-x-1/2 -translate-y-1/2'} font-medium tracking-wider ${fontSubtext}" style="top: ${positions.subtext.top}%; left: ${positions.subtext.left}%; font-size: ${sizeSubtext}px; color: ${colorSubtext};">${data.subtext}</div>
+            </div>
+
+            ${hasFlaps ? `
+            <div class="flex items-center justify-center bg-slate-50/50" style="height: ${flapHeight}mm;">
+              <span class="text-[10px] text-slate-400 no-print">⋯⋯ 折線：底座頁 ⋯⋯</span>
+            </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function parseBatchData() {
+      const raw = batchTextarea.value.trim();
+      if (!raw) return [];
+      return raw.split('\n').map(line => {
+        const parts = line.split(/[,\t，]/).map(s => s.trim());
+        return { title: parts[0] || '', name: parts[1] || '', subtext: parts[2] || '' };
+      });
+    }
+
+    function render() {
+      cardsRenderArea.innerHTML = '';
+
+      if (currentMode === 'single') {
+        const singleData = {
+          title: inputTitle.value || '',
+          name: inputName.value || '',
+          subtext: inputSubtext.value || ''
+        };
+        cardsRenderArea.innerHTML = createCardHTML(singleData, 0, true);
+        bindDragEvents();
+      } else {
+        const batchData = parseBatchData();
+        batchCount.innerText = `已解析：${batchData.length} 筆資料`;
+        if (batchData.length === 0) {
+          cardsRenderArea.innerHTML = '<div class="text-slate-400 py-10">請在左側貼上批量名單...</div>';
+          return;
+        }
+        let html = '';
+        batchData.forEach((data, idx) => { html += createCardHTML(data, idx, false); });
+        cardsRenderArea.innerHTML = html;
+      }
+    }
+
+    function bindDragEvents() {
+      const frontTitle = document.getElementById('frontTitle');
+      const frontName = document.getElementById('frontName');
+      const frontSubtext = document.getElementById('frontSubtext');
+
+      const backTitle = document.getElementById('backTitle');
+      const backName = document.getElementById('backName');
+      const backSubtext = document.getElementById('backSubtext');
+
+      const secFaceFront = document.getElementById('secFaceFront');
+
+      if (!frontTitle || !frontName || !frontSubtext || !secFaceFront) return;
+
+      const dragItems = [
+        { front: frontTitle, back: backTitle, key: 'title' },
+        { front: frontName, back: backName, key: 'name' },
+        { front: frontSubtext, back: backSubtext, key: 'subtext' }
+      ];
+
+      dragItems.forEach(({ front, back, key }) => {
+        let isDragging = false;
+
+        front.addEventListener('pointerdown', (e) => {
+          isDragging = true;
+          front.setPointerCapture(e.pointerId);
+        });
+
+        front.addEventListener('pointermove', (e) => {
+          if (!isDragging) return;
+
+          const rect = secFaceFront.getBoundingClientRect();
+          let x = e.clientX - rect.left;
+          let y = e.clientY - rect.top;
+
+          let percentX = Math.max(0, Math.min(100, (x / rect.width) * 100));
+          let percentY = Math.max(0, Math.min(100, (y / rect.height) * 100));
+
+          positions[key].left = percentX;
+          positions[key].top = percentY;
+
+          front.style.left = `${percentX}%`;
+          front.style.top = `${percentY}%`;
+
+          if (back) {
+            back.style.left = `${percentX}%`;
+            back.style.top = `${percentY}%`;
+          }
+        });
+
+        front.addEventListener('pointerup', (e) => {
+          isDragging = false;
+          if (front.hasPointerCapture(e.pointerId)) {
+            front.releasePointerCapture(e.pointerId);
+          }
+        });
+      });
+    }
+
+    [inputCardWidth, inputFaceHeight, toggleFlaps].forEach(el => el.addEventListener('change', render));
+    [inputCardWidth, inputFaceHeight].forEach(el => el.addEventListener('input', render));
+
+    [inputTitle, selectFontTitle, inputColorTitle].forEach(el => el.addEventListener('input', render));
+    [selectFontTitle, inputColorTitle].forEach(el => el.addEventListener('change', render));
+    inputSizeTitle.addEventListener('input', (e) => { sizeTitleValue.innerText = e.target.value; render(); });
+
+    [inputName, selectFontName, inputColorName].forEach(el => el.addEventListener('input', render));
+    [selectFontName, inputColorName].forEach(el => el.addEventListener('change', render));
+    inputSizeName.addEventListener('input', (e) => { sizeNameValue.innerText = e.target.value; render(); });
+
+    [inputSubtext, selectFontSubtext, inputColorSubtext].forEach(el => el.addEventListener('input', render));
+    [selectFontSubtext, inputColorSubtext].forEach(el => el.addEventListener('change', render));
+    inputSizeSubtext.addEventListener('input', (e) => { sizeSubtextValue.innerText = e.target.value; render(); });
+
+    batchTextarea.addEventListener('input', render);
+
+    resetPosBtn.addEventListener('click', () => {
+      positions = { title: { top: 12.5, left: 50 }, name: { top: 50, left: 50 }, subtext: { top: 87.5, left: 50 } };
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
