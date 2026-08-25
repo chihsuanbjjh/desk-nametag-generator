@@ -7,17 +7,36 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;800&family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
   <style>
-    /* 載入 Repo 內的粉圓字體 */
+    /* 載入 Repo 內的字體 */
     @font-face {
       font-family: 'OpenHuninn';
       src: url('./jf-openhuninn-2.1.ttf') format('truetype');
       font-display: swap;
     }
+    @font-face {
+      font-family: 'LXGWWenKaiTC';
+      src: url('./LXGWWenKaiTC-Regular.ttf') format('truetype');
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'LXGWWenKaiMonoTC';
+      src: url('./LXGWWenKaiMonoTC-Regular.ttf') format('truetype');
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'TaipeiSansTC';
+      src: url('./TaipeiSansTCBeta-Regular.ttf') format('truetype');
+      font-display: swap;
+    }
 
+    /* CSS 字體類別 */
     .font-sans-tc { font-family: 'Noto Sans TC', sans-serif; }
     .font-serif-tc { font-family: 'Noto Serif TC', serif; }
     .font-kai { font-family: BiauKai, "Kaiti TC", "標楷體", serif; }
     .font-huninn { font-family: 'OpenHuninn', sans-serif; }
+    .font-wenkai-tc { font-family: 'LXGWWenKaiTC', serif; }
+    .font-wenkai-mono { font-family: 'LXGWWenKaiMonoTC', monospace, serif; }
+    .font-taipei-sans { font-family: 'TaipeiSansTC', sans-serif; }
 
     .a4-landscape {
       width: 297mm;
@@ -96,8 +115,8 @@
         <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">🎨 預設版面主題</label>
         <select id="selectTheme" class="w-full border rounded-lg p-2 text-xs bg-white font-medium border-indigo-200 focus:ring-2 focus:ring-indigo-500">
           <option value="classic">公務典雅 (標楷體 / 經典紅黑)</option>
-          <option value="modern">現代簡約 (黑體 / 深灰質感)</option>
-          <option value="academic">學術研習 (明體 / 典雅深藍)</option>
+          <option value="lxgw">人文研討 (霞鶖文楷 / 典雅墨藍)</option>
+          <option value="modern">現代簡約 (台北黑體 / 深灰質感)</option>
           <option value="cute">活潑粉圓 (粉圓體 / 繽紛色彩)</option>
         </select>
       </div>
@@ -151,10 +170,13 @@
             <div>
               <label class="block text-[10px] text-slate-500">字型</label>
               <select id="selectFontTitle" class="w-full border rounded p-1 text-xs bg-white">
-                <option value="font-sans-tc">黑體</option>
-                <option value="font-serif-tc">明體</option>
+                <option value="font-sans-tc">黑體 (Noto Sans)</option>
+                <option value="font-serif-tc">明體 (Noto Serif)</option>
                 <option value="font-kai" selected>標楷體</option>
                 <option value="font-huninn">jf-openhuninn 粉圓</option>
+                <option value="font-wenkai-tc">霞鶖文楷 (繁體)</option>
+                <option value="font-wenkai-mono">霞鶖文楷 (等寬繁體)</option>
+                <option value="font-taipei-sans">台北黑體</option>
               </select>
             </div>
             <div>
@@ -180,10 +202,13 @@
             <div>
               <label class="block text-[10px] text-indigo-600 font-medium">字型</label>
               <select id="selectFontName" class="w-full border rounded p-1 text-xs bg-white border-indigo-200">
-                <option value="font-sans-tc">黑體</option>
-                <option value="font-serif-tc">明體</option>
+                <option value="font-sans-tc">黑體 (Noto Sans)</option>
+                <option value="font-serif-tc">明體 (Noto Serif)</option>
                 <option value="font-kai" selected>標楷體</option>
                 <option value="font-huninn">jf-openhuninn 粉圓</option>
+                <option value="font-wenkai-tc">霞鶖文楷 (繁體)</option>
+                <option value="font-wenkai-mono">霞鶖文楷 (等寬繁體)</option>
+                <option value="font-taipei-sans">台北黑體</option>
               </select>
             </div>
             <div>
@@ -209,10 +234,13 @@
             <div>
               <label class="block text-[10px] text-slate-500">字型</label>
               <select id="selectFontSubtext" class="w-full border rounded p-1 text-xs bg-white">
-                <option value="font-sans-tc">黑體</option>
-                <option value="font-serif-tc">明體</option>
+                <option value="font-sans-tc">黑體 (Noto Sans)</option>
+                <option value="font-serif-tc">明體 (Noto Serif)</option>
                 <option value="font-kai" selected>標楷體</option>
                 <option value="font-huninn">jf-openhuninn 粉圓</option>
+                <option value="font-wenkai-tc">霞鶖文楷 (繁體)</option>
+                <option value="font-wenkai-mono">霞鶖文楷 (等寬繁體)</option>
+                <option value="font-taipei-sans">台北黑體</option>
               </select>
             </div>
             <div>
@@ -273,15 +301,15 @@
         fontName: 'font-kai', colorName: '#881337', sizeName: 58,
         fontSubtext: 'font-kai', colorSubtext: '#64748b', sizeSubtext: 16
       },
-      modern: {
-        fontTitle: 'font-sans-tc', colorTitle: '#334155', sizeTitle: 20,
-        fontName: 'font-sans-tc', colorName: '#0f172a', sizeName: 54,
-        fontSubtext: 'font-sans-tc', colorSubtext: '#64748b', sizeSubtext: 15
+      lxgw: {
+        fontTitle: 'font-wenkai-tc', colorTitle: '#1e3a8a', sizeTitle: 22,
+        fontName: 'font-wenkai-tc', colorName: '#0f172a', sizeName: 58,
+        fontSubtext: 'font-wenkai-tc', colorSubtext: '#334155', sizeSubtext: 16
       },
-      academic: {
-        fontTitle: 'font-serif-tc', colorTitle: '#1e3a8a', sizeTitle: 20,
-        fontName: 'font-serif-tc', colorName: '#1e3a8a', sizeName: 56,
-        fontSubtext: 'font-serif-tc', colorSubtext: '#475569', sizeSubtext: 15
+      modern: {
+        fontTitle: 'font-taipei-sans', colorTitle: '#334155', sizeTitle: 20,
+        fontName: 'font-taipei-sans', colorName: '#0f172a', sizeName: 54,
+        fontSubtext: 'font-taipei-sans', colorSubtext: '#64748b', sizeSubtext: 15
       },
       cute: {
         fontTitle: 'font-huninn', colorTitle: '#0369a1', sizeTitle: 22,
