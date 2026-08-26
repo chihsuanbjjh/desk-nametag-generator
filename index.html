@@ -268,16 +268,22 @@
         <div class="text-xs text-indigo-600 font-bold" id="batchCount">已解析：3 筆資料</div>
       </div>
 
-      <!-- 背景圖下拉選單與位置重置 -->
+      <!-- 背景圖控制 (下拉選單 + 自訂上傳) -->
       <div class="space-y-3 border-t pt-3">
         <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block">🖼️ 背景圖樣式</span>
         
         <div>
           <label class="block text-xs font-medium mb-1">選擇背景圖</label>
           <select id="selectBg" class="w-full border rounded-lg p-2 text-xs bg-white font-medium border-indigo-200 focus:ring-2 focus:ring-indigo-500">
-            <option value="./bjjh_bg.png" selected>bjjh_bg</option>
-            <option value="">空白 (無背景)</option>
+            <option value="" selected>空白 (無背景)</option>
+            <option value="./bjjh_bg.png">bjjh_bg</option>
+            <option value="custom">📁 自訂上傳圖片...</option>
           </select>
+        </div>
+
+        <div id="uploadWrapper" class="hidden">
+          <label class="block text-[11px] text-slate-500 mb-1">選擇本機圖片檔</label>
+          <input type="file" id="inputBg" accept="image/*" class="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-indigo-50 file:text-indigo-700">
         </div>
 
         <button id="resetPosBtn" class="w-full py-1 bg-slate-200 hover:bg-slate-300 text-[11px] rounded text-slate-700 font-medium transition">
@@ -322,7 +328,8 @@
     };
 
     let currentMode = 'single';
-    let bgImageData = './bjjh_bg.png';
+    let bgImageData = ''; // 預設空白
+    let customUploadedBg = ''; // 儲存自訂上傳的 base64 圖片
     let positions = { title: { top: 12.5, left: 50 }, name: { top: 50, left: 50 }, subtext: { top: 87.5, left: 50 } };
 
     const btnModeSingle = document.getElementById('btnModeSingle');
@@ -358,6 +365,8 @@
     const sizeSubtextValue = document.getElementById('sizeSubtextValue');
 
     const selectBg = document.getElementById('selectBg');
+    const inputBg = document.getElementById('inputBg');
+    const uploadWrapper = document.getElementById('uploadWrapper');
     const resetPosBtn = document.getElementById('resetPosBtn');
 
     btnModeSingle.addEventListener('click', () => {
@@ -418,8 +427,34 @@
     });
 
     selectBg.addEventListener('change', (e) => {
-      bgImageData = e.target.value;
+      const val = e.target.value;
+      if (val === 'custom') {
+        uploadWrapper.classList.remove('hidden');
+        if (customUploadedBg) {
+          bgImageData = customUploadedBg;
+        } else {
+          inputBg.click();
+        }
+      } else {
+        uploadWrapper.classList.add('hidden');
+        bgImageData = val;
+      }
       render();
+    });
+
+    inputBg.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          customUploadedBg = evt.target.result;
+          bgImageData = customUploadedBg;
+          selectBg.value = 'custom';
+          uploadWrapper.classList.remove('hidden');
+          render();
+        };
+        reader.readAsDataURL(file);
+      }
     });
 
     function createCardHTML(data, index, isInteractive = false) {
