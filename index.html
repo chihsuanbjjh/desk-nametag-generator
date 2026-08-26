@@ -273,7 +273,7 @@
         <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block">🖼️ 背景圖與位置重置</span>
         
         <div>
-          <label class="block text-xs font-medium mb-1">上傳背景圖 (正背面鏡像)</label>
+          <label class="block text-xs font-medium mb-1">更換背景圖 (預設使用 bjjh_bg.png)</label>
           <input type="file" id="inputBg" accept="image/*" class="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-indigo-50 file:text-indigo-700">
         </div>
 
@@ -319,7 +319,8 @@
     };
 
     let currentMode = 'single';
-    let bgImageData = '';
+    /* 預設載入 Repo 內的 bjjh_bg.png */
+    let bgImageData = './bjjh_bg.png';
     let positions = { title: { top: 12.5, left: 50 }, name: { top: 50, left: 50 }, subtext: { top: 87.5, left: 50 } };
 
     const btnModeSingle = document.getElementById('btnModeSingle');
